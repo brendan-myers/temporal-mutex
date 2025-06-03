@@ -72,7 +72,6 @@ func (m *Mutex) Lock(ctx context.Context) (bool, error) {
 
 	for {
 		lctx, cancel := context.WithTimeout(ctx, TIMEOUT)
-		defer cancel()
 
 		// try to obtain the lock
 		res, err := (*m.client).PollActivityTaskQueue(lctx, &workflowservice.PollActivityTaskQueueRequest{
@@ -82,12 +81,14 @@ func (m *Mutex) Lock(ctx context.Context) (bool, error) {
 			},
 		})
 		if err != nil {
+			cancel()
 			return false, err
 		}
 
 		// if the lock has been obtained, return
 		if res.TaskToken != nil {
 			m.taskToken = res.TaskToken
+			cancel()
 			return true, nil
 		}
 
@@ -96,6 +97,7 @@ func (m *Mutex) Lock(ctx context.Context) (bool, error) {
 		if rand.Intn(100) >= 50 {
 			m.createLockActivity(ctx)
 		}
+		cancel()
 	}
 }
 

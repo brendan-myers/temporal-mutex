@@ -39,8 +39,8 @@ func main() {
 			fmt.Printf("%d - locked\n", i)
 			fmt.Printf("%d - critical section\n", i)
 			time.Sleep(time.Second * 1)
-
 			fmt.Printf("%d - releasing lock\n\n", i)
+
 			err = mutex.Unlock(ctx)
 			if err != nil {
 				log.Fatalf("%d - error releasing lock: %v", i, err)
