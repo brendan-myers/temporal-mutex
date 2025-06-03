@@ -41,7 +41,7 @@ func main() {
 
 			fmt.Printf("%d - locked\n", i)
 			fmt.Printf("%d - critical section\n", i)
-			time.Sleep(time.Second * 60)
+			time.Sleep(time.Second * 1)
 
 			if lctx.Err() != nil {
 				fmt.Printf("%d - lock timed out\n", i)
