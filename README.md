@@ -3,7 +3,19 @@
 
 ## What is it?
 
+A distributed lock built using Temporal by abusing activity tasks.
+
+## How to run the example
+
+In separate terminals, run;
+
+```sh
+go run ./example
+```
+
 ## How does it work?
+
+TBD
 
 ## But, why?
 
