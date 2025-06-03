@@ -31,13 +31,13 @@ func main() {
 
 			fmt.Printf("%d - waiting\n", i)
 
-			lctx, cancel := context.WithTimeout(ctx, temporalmutex.START_TO_CLOSE_TIMEOUT)
-			defer cancel()
-
-			_, err = mutex.Lock(ctx)
+			err = mutex.Lock(ctx)
 			if err != nil {
 				log.Fatalf("%d - unable to obtain lock: %v", i, err)
 			}
+
+			lctx, cancel := context.WithTimeout(ctx, temporalmutex.START_TO_CLOSE_TIMEOUT)
+			defer cancel()
 
 			fmt.Printf("%d - locked\n", i)
 			fmt.Printf("%d - critical section\n", i)

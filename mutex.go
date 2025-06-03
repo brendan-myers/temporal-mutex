@@ -64,10 +64,10 @@ func (m *Mutex) Close() {
 	}
 }
 
-func (m *Mutex) Lock(ctx context.Context) (bool, error) {
+func (m *Mutex) Lock(ctx context.Context) error {
 	if m.taskToken != nil {
 		// TODO - Lock() may have been called twice
-		return true, nil
+		return nil
 	}
 
 	for {
@@ -82,14 +82,14 @@ func (m *Mutex) Lock(ctx context.Context) (bool, error) {
 		})
 		if err != nil {
 			cancel()
-			return false, err
+			return err
 		}
 
 		// if the lock has been obtained, return
 		if res.TaskToken != nil {
 			m.taskToken = res.TaskToken
 			cancel()
-			return true, nil
+			return nil
 		}
 
 		// If the lock wasn't obtained, randomly check if workflow and activity
