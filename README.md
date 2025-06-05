@@ -17,9 +17,9 @@ In separate terminals, run;
 go run ./example
 ```
 
-## How does it work?
+## Caveats
 
-TBD
+So, so many.
 
 ## But, why?
 
