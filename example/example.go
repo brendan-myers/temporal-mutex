@@ -10,12 +10,12 @@ import (
 	temporalmutex "github.com/brendan-myers/temporal-mutex"
 )
 
-const HOST = "localhost:7233"
+const Host = "localhost:7233"
 
 func main() {
 	ctx := context.Background()
 
-	mutex, err := temporalmutex.NewMutex(ctx, HOST)
+	mutex, err := temporalmutex.NewMutex(ctx, Host)
 	if err != nil {
 		log.Fatalln("unable to create mutex", err)
 	}
