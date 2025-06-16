@@ -16,16 +16,15 @@ import (
 )
 
 const (
-	TIMEOUT                = 60 * time.Second
-	SHORT_TIMEOUT          = 30 * time.Second
-	START_TO_CLOSE_TIMEOUT = 30 * time.Second
-	TASK_QUEUE             = "default"
-	NAMESPACE              = "default"
-	//----//
-	WORKFLOW_TYPE = "lock"
-	WORKFLOW_ID   = "lock"
-	ACTIVITY_TYPE = "lock"
-	ACTIVITY_ID   = "lock"
+	TIMEOUT             = 60 * time.Second
+	ShortTimeout        = 30 * time.Second
+	StartToCloseTimeout = 30 * time.Second
+	TaskQueue           = "default"
+	Namespace           = "default"
+	WorkflowType        = "lock"
+	WorkflowId          = "lock"
+	ActivityType        = "lock"
+	ActivityId          = "lock"
 )
 
 type Mutex struct {
@@ -49,18 +48,17 @@ func NewMutex(ctx context.Context, target string) (*Mutex, error) {
 		return &Mutex{}, err
 	}
 
-	// err =
-	m.createLockActivity(ctx)
-	// if err != nil {
-	// 	return &Mutex{}, err
-	// }
+	err = m.createLockActivity(ctx)
+	if err != nil {
+		return &Mutex{}, err
+	}
 
 	return m, nil
 }
 
 func (m *Mutex) Close() {
 	if m.conn != nil {
-		m.conn.Close()
+		_ = m.conn.Close()
 	}
 }
 
@@ -75,9 +73,9 @@ func (m *Mutex) Lock(ctx context.Context) error {
 
 		// try to obtain the lock
 		res, err := (*m.client).PollActivityTaskQueue(lctx, &workflowservice.PollActivityTaskQueueRequest{
-			Namespace: NAMESPACE,
+			Namespace: Namespace,
 			TaskQueue: &taskqueue.TaskQueue{
-				Name: TASK_QUEUE,
+				Name: TaskQueue,
 			},
 		})
 		if err != nil {
@@ -95,7 +93,7 @@ func (m *Mutex) Lock(ctx context.Context) error {
 		// If the lock wasn't obtained, randomly check if workflow and activity
 		// tasks need to be created (as they may have been lost due to process exit/crash/etc)
 		if rand.Intn(100) >= 50 {
-			m.createLockActivity(ctx)
+			_ = m.createLockActivity(ctx)
 		}
 		cancel()
 	}
@@ -106,7 +104,7 @@ func (m *Mutex) Unlock(ctx context.Context) error {
 
 	_, err := (*m.client).RespondActivityTaskCompleted(ctx, &workflowservice.RespondActivityTaskCompletedRequest{
 		TaskToken: m.taskToken,
-		Namespace: NAMESPACE,
+		Namespace: Namespace,
 	})
 
 	if err == nil {
@@ -118,13 +116,13 @@ func (m *Mutex) Unlock(ctx context.Context) error {
 
 func (m *Mutex) createLockWorkflow(ctx context.Context) error {
 	_, err := (*m.client).SignalWithStartWorkflowExecution(ctx, &workflowservice.SignalWithStartWorkflowExecutionRequest{
-		Namespace:  NAMESPACE,
-		WorkflowId: WORKFLOW_ID,
+		Namespace:  Namespace,
+		WorkflowId: WorkflowId,
 		WorkflowType: &common.WorkflowType{
-			Name: WORKFLOW_TYPE,
+			Name: WorkflowType,
 		},
 		TaskQueue: &taskqueue.TaskQueue{
-			Name: TASK_QUEUE,
+			Name: TaskQueue,
 			Kind: enums.TASK_QUEUE_KIND_NORMAL,
 		},
 		SignalName: "start",
@@ -134,13 +132,13 @@ func (m *Mutex) createLockWorkflow(ctx context.Context) error {
 }
 
 func (m *Mutex) createLockActivity(ctx context.Context) error {
-	lctx, cancel := context.WithTimeout(ctx, SHORT_TIMEOUT)
+	lctx, cancel := context.WithTimeout(ctx, ShortTimeout)
 	defer cancel()
 
 	wRes, err := (*m.client).PollWorkflowTaskQueue(lctx, &workflowservice.PollWorkflowTaskQueueRequest{
-		Namespace: NAMESPACE,
+		Namespace: Namespace,
 		TaskQueue: &taskqueue.TaskQueue{
-			Name: TASK_QUEUE,
+			Name: TaskQueue,
 			Kind: enums.TASK_QUEUE_KIND_NORMAL,
 		},
 	})
@@ -148,31 +146,31 @@ func (m *Mutex) createLockActivity(ctx context.Context) error {
 		return nil
 	}
 
-	mctx, cancel := context.WithTimeout(ctx, SHORT_TIMEOUT)
+	mctx, cancel := context.WithTimeout(ctx, ShortTimeout)
 	defer cancel()
 
-	(*m.client).RespondWorkflowTaskCompleted(mctx, &workflowservice.RespondWorkflowTaskCompletedRequest{
+	_, err = (*m.client).RespondWorkflowTaskCompleted(mctx, &workflowservice.RespondWorkflowTaskCompletedRequest{
 		TaskToken: wRes.TaskToken,
-		Namespace: NAMESPACE,
+		Namespace: Namespace,
 		Commands: []*command.Command{
 			{
 				CommandType: enums.COMMAND_TYPE_SCHEDULE_ACTIVITY_TASK,
 				Attributes: &command.Command_ScheduleActivityTaskCommandAttributes{
 					ScheduleActivityTaskCommandAttributes: &command.ScheduleActivityTaskCommandAttributes{
-						ActivityId: ACTIVITY_ID,
+						ActivityId: ActivityId,
 						ActivityType: &common.ActivityType{
-							Name: ACTIVITY_TYPE,
+							Name: ActivityType,
 						},
 						TaskQueue: &taskqueue.TaskQueue{
-							Name: TASK_QUEUE,
+							Name: TaskQueue,
 							Kind: enums.TASK_QUEUE_KIND_NORMAL,
 						},
-						StartToCloseTimeout: durationpb.New(START_TO_CLOSE_TIMEOUT),
+						StartToCloseTimeout: durationpb.New(StartToCloseTimeout),
 					},
 				},
 			},
 		},
 	})
 
-	return nil
+	return err
 }
