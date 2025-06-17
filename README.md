@@ -15,7 +15,7 @@ This abomination works in the opposite way; there is only one activity task (the
 
 ## How to run the example
 
-In separate terminals, run;
+First, run a local Temporal server `temporal server start-dev`, then in (multiple) separate terminals, run;
 
 ```sh
 go run ./example
