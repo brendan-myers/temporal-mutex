@@ -16,15 +16,15 @@ import (
 )
 
 const (
-	TIMEOUT             = 60 * time.Second
-	ShortTimeout        = 30 * time.Second
-	StartToCloseTimeout = 30 * time.Second
-	TaskQueue           = "default"
-	Namespace           = "default"
-	WorkflowType        = "lock"
-	WorkflowId          = "lock"
-	ActivityType        = "lock"
-	ActivityId          = "lock"
+	TIMEOUT                time.Duration = 60 * time.Second
+	SHORT_TIMEOUT          time.Duration = 30 * time.Second
+	START_TO_CLOSE_TIMEOUT time.Duration = 30 * time.Second
+	TASK_QUEUE             string        = "default"
+	NAMESPACE              string        = "default"
+	WORKFLOW_TYPE          string        = "lock"
+	WORKFLOW_ID            string        = "lock"
+	ACTIVITY_TYPE          string        = "lock"
+	ACTIVITY_ID            string        = "lock"
 )
 
 type Mutex struct {
@@ -48,10 +48,11 @@ func NewMutex(ctx context.Context, target string) (*Mutex, error) {
 		return &Mutex{}, err
 	}
 
-	err = m.createLockActivity(ctx)
-	if err != nil {
-		return &Mutex{}, err
-	}
+	//err
+	_ = m.createLockActivity(ctx)
+	//if err != nil {
+	//	return &Mutex{}, err
+	//}
 
 	return m, nil
 }
@@ -73,9 +74,9 @@ func (m *Mutex) Lock(ctx context.Context) error {
 
 		// try to obtain the lock
 		res, err := (*m.client).PollActivityTaskQueue(lctx, &workflowservice.PollActivityTaskQueueRequest{
-			Namespace: Namespace,
+			Namespace: NAMESPACE,
 			TaskQueue: &taskqueue.TaskQueue{
-				Name: TaskQueue,
+				Name: TASK_QUEUE,
 			},
 		})
 		if err != nil {
@@ -104,7 +105,7 @@ func (m *Mutex) Unlock(ctx context.Context) error {
 
 	_, err := (*m.client).RespondActivityTaskCompleted(ctx, &workflowservice.RespondActivityTaskCompletedRequest{
 		TaskToken: m.taskToken,
-		Namespace: Namespace,
+		Namespace: NAMESPACE,
 	})
 
 	if err == nil {
@@ -116,13 +117,13 @@ func (m *Mutex) Unlock(ctx context.Context) error {
 
 func (m *Mutex) createLockWorkflow(ctx context.Context) error {
 	_, err := (*m.client).SignalWithStartWorkflowExecution(ctx, &workflowservice.SignalWithStartWorkflowExecutionRequest{
-		Namespace:  Namespace,
-		WorkflowId: WorkflowId,
+		Namespace:  NAMESPACE,
+		WorkflowId: WORKFLOW_ID,
 		WorkflowType: &common.WorkflowType{
-			Name: WorkflowType,
+			Name: WORKFLOW_TYPE,
 		},
 		TaskQueue: &taskqueue.TaskQueue{
-			Name: TaskQueue,
+			Name: TASK_QUEUE,
 			Kind: enums.TASK_QUEUE_KIND_NORMAL,
 		},
 		SignalName: "start",
@@ -132,13 +133,13 @@ func (m *Mutex) createLockWorkflow(ctx context.Context) error {
 }
 
 func (m *Mutex) createLockActivity(ctx context.Context) error {
-	lctx, cancel := context.WithTimeout(ctx, ShortTimeout)
+	lctx, cancel := context.WithTimeout(ctx, SHORT_TIMEOUT)
 	defer cancel()
 
 	wRes, err := (*m.client).PollWorkflowTaskQueue(lctx, &workflowservice.PollWorkflowTaskQueueRequest{
-		Namespace: Namespace,
+		Namespace: NAMESPACE,
 		TaskQueue: &taskqueue.TaskQueue{
-			Name: TaskQueue,
+			Name: TASK_QUEUE,
 			Kind: enums.TASK_QUEUE_KIND_NORMAL,
 		},
 	})
@@ -146,26 +147,26 @@ func (m *Mutex) createLockActivity(ctx context.Context) error {
 		return nil
 	}
 
-	mctx, cancel := context.WithTimeout(ctx, ShortTimeout)
+	mctx, cancel := context.WithTimeout(ctx, SHORT_TIMEOUT)
 	defer cancel()
 
 	_, err = (*m.client).RespondWorkflowTaskCompleted(mctx, &workflowservice.RespondWorkflowTaskCompletedRequest{
 		TaskToken: wRes.TaskToken,
-		Namespace: Namespace,
+		Namespace: NAMESPACE,
 		Commands: []*command.Command{
 			{
 				CommandType: enums.COMMAND_TYPE_SCHEDULE_ACTIVITY_TASK,
 				Attributes: &command.Command_ScheduleActivityTaskCommandAttributes{
 					ScheduleActivityTaskCommandAttributes: &command.ScheduleActivityTaskCommandAttributes{
-						ActivityId: ActivityId,
+						ActivityId: ACTIVITY_ID,
 						ActivityType: &common.ActivityType{
-							Name: ActivityType,
+							Name: ACTIVITY_TYPE,
 						},
 						TaskQueue: &taskqueue.TaskQueue{
-							Name: TaskQueue,
+							Name: TASK_QUEUE,
 							Kind: enums.TASK_QUEUE_KIND_NORMAL,
 						},
-						StartToCloseTimeout: durationpb.New(StartToCloseTimeout),
+						StartToCloseTimeout: durationpb.New(START_TO_CLOSE_TIMEOUT),
 					},
 				},
 			},

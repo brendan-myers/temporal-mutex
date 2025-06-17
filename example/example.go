@@ -36,7 +36,7 @@ func main() {
 				log.Fatalf("%d - unable to obtain lock: %v", i, err)
 			}
 
-			lctx, cancel := context.WithTimeout(ctx, temporalmutex.StartToCloseTimeout)
+			lctx, cancel := context.WithTimeout(ctx, temporalmutex.START_TO_CLOSE_TIMEOUT)
 			defer cancel()
 
 			fmt.Printf("%d - locked\n", i)
